@@ -47,7 +47,9 @@ local function GetClosestTargetInFOV()
                 local screenPos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
 
                 if onScreen then
-                    local dist = (Vector2.new(screenPos.X, screenPos.Y) - MousePos).Magnitude
+                    local dx = screenPos.X - MousePos.X
+                    local dy = screenPos.Y - MousePos.Y
+                    local dist = math.sqrt(dx * dx + dy * dy)
                     if dist < ShortestDistance then
                         ShortestDistance = dist
                         ClosestTarget = targetPart
