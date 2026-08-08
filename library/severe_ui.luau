@@ -1,7 +1,7 @@
 --!strict
 -- Vespera UI Library for Severe External Luau VM
 -- Theme: Obsidian Black & Neon Purple
--- Fully Draggable, Resizable, Layered with ZIndex & Mouse Tab Switching
+-- Built using Severe Native Input Globals (isleftpressed, isleftclicked, getpressedkeys)
 
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -21,7 +21,7 @@ else
 end
 
 local VesperaUI = {
-    Version = "1.1.0",
+    Version = "1.2.0",
     Themes = {
         ObsidianPurple = {
             Background = Color3.fromRGB(12, 10, 18),
@@ -38,7 +38,7 @@ local VesperaUI = {
     Settings = {
         AnimationMode = "Smooth",
         SmartFPSLimit = 60,
-        KeybindToggle = Enum.KeyCode.RightShift,
+        KeybindToggle = "RightShift",
     }
 }
 
@@ -48,7 +48,6 @@ function VesperaUI:CreateWindow(config: any)
     local subtitleText = config.Subtitle or "Severe External Edition"
     local windowSize = config.Size or Vector2.new(540, 370)
     local windowPos = config.Position or Vector2.new(150, 150)
-    local toggleKey = config.Keybind or VesperaUI.Settings.KeybindToggle
 
     local windowState = {
         Open = true,
@@ -137,7 +136,7 @@ function VesperaUI:CreateWindow(config: any)
     SidebarDivider.ZIndex = 4
     SidebarDivider.Visible = true
 
-    -- 9. Resize Grip Handle in Bottom-Right Corner (ZIndex = 10)
+    -- 9. Resize Grip Handle (ZIndex = 10)
     local ResizeGrip = Drawing.new("Square")
     ResizeGrip.Size = Vector2.new(12, 12)
     ResizeGrip.Position = windowPos + windowSize - Vector2.new(14, 14)
@@ -148,11 +147,6 @@ function VesperaUI:CreateWindow(config: any)
 
     if typeof(block_roblox_window) == "function" then
         block_roblox_window(true)
-    end
-    if typeof(send_notification) == "function" then
-        pcall(function()
-            send_notification("Vespera UI", "Vespera UI Loaded successfully!")
-        end)
     end
 
     local WindowAPI = {}
@@ -184,7 +178,6 @@ function VesperaUI:CreateWindow(config: any)
 
         ResizeGrip.Position = pos + sz - Vector2.new(14, 14)
 
-        -- Update Tabs Position & Elements Position/Size
         for i, tab in ipairs(windowState.Tabs) do
             local tabY = pos.Y + 48 + ((i - 1) * 36)
             tab.TabBtn.Position = Vector2.new(pos.X + 5, tabY)
@@ -226,21 +219,78 @@ function VesperaUI:CreateWindow(config: any)
         WindowAPI:UpdateTabVisibilities()
     end
 
-    -- Toggle Keybind Listener
-    UserInputService.InputBegan:Connect(function(input)
-        if input.KeyCode == toggleKey then
-            WindowAPI:SetVisible(not windowState.Open)
-        end
-    end)
+    -- Severe Native Input Loop
+    local lastLeftPressed = false
+    local lastToggleKeyPressed = false
 
-    -- Mouse Input Listener (Click & Drag & Resize Handle Start)
-    UserInputService.InputBegan:Connect(function(input)
-        if windowState.Open and input.UserInputType == Enum.UserInputType.MouseButton1 then
-            local mPos = UserInputService:GetMouseLocation()
+    local function GetMousePos(): Vector2
+        if typeof(UserInputService) == "userdata" and typeof(UserInputService.GetMouseLocation) == "function" then
+            return UserInputService:GetMouseLocation()
+        end
+        return Vector2.new(0, 0)
+    end
+
+    local function IsLeftDown(): boolean
+        if typeof(isleftpressed) == "function" then return isleftpressed() end
+        if typeof(isleftclicked) == "function" then return isleftclicked() end
+        return false
+    end
+
+    RunService.RenderStepped:Connect(function()
+        -- 1. Check Toggle Keybind (RightShift)
+        if typeof(getpressedkeys) == "function" then
+            local keys = getpressedkeys()
+            local rShiftDown = false
+            for _, k in ipairs(keys) do
+                if k == "RightShift" or k == "RSHIFT" or k == "Right Shift" then
+                    rShiftDown = true
+                    break
+                end
+            end
+            if rShiftDown and not lastToggleKeyPressed then
+                WindowAPI:SetVisible(not windowState.Open)
+            end
+            lastToggleKeyPressed = rShiftDown
+        end
+
+        if not windowState.Open then return end
+
+        local mPos = GetMousePos()
+        local leftPressed = IsLeftDown()
+        local justClicked = leftPressed and not lastLeftPressed
+        lastLeftPressed = leftPressed
+
+        -- 2. Handle Dragging
+        if windowState.IsDragging then
+            if leftPressed then
+                windowState.Position = mPos - windowState.DragOffset
+                LayoutUI()
+            else
+                windowState.IsDragging = false
+            end
+            return
+        end
+
+        -- 3. Handle Resizing
+        if windowState.IsResizing then
+            if leftPressed then
+                local delta = mPos - windowState.ResizeStartMouse
+                local newX = math.max(420, windowState.ResizeStartSize.X + delta.X)
+                local newY = math.max(260, windowState.ResizeStartSize.Y + delta.Y)
+                windowState.Size = Vector2.new(newX, newY)
+                LayoutUI()
+            else
+                windowState.IsResizing = false
+            end
+            return
+        end
+
+        -- 4. Just Clicked Trigger
+        if justClicked then
             local pos = windowState.Position
             local sz = windowState.Size
 
-            -- 1. Check Resize Grip Click (Bottom-Right 16x16 box)
+            -- Check Resize Handle Click
             if mPos.X >= (pos.X + sz.X - 16) and mPos.X <= (pos.X + sz.X) and
                mPos.Y >= (pos.Y + sz.Y - 16) and mPos.Y <= (pos.Y + sz.Y) then
                 windowState.IsResizing = true
@@ -249,7 +299,7 @@ function VesperaUI:CreateWindow(config: any)
                 return
             end
 
-            -- 2. Check Header Bar Click (Dragging Start)
+            -- Check Header Drag Click
             if mPos.X >= pos.X and mPos.X <= (pos.X + sz.X) and
                mPos.Y >= pos.Y and mPos.Y <= (pos.Y + 42) then
                 windowState.IsDragging = true
@@ -257,7 +307,7 @@ function VesperaUI:CreateWindow(config: any)
                 return
             end
 
-            -- 3. Check Tab Button Clicks
+            -- Check Tab Clicks
             for i, tab in ipairs(windowState.Tabs) do
                 local btnPos = tab.TabBtn.Position
                 local btnSize = tab.TabBtn.Size
@@ -268,31 +318,22 @@ function VesperaUI:CreateWindow(config: any)
                     break
                 end
             end
+
+            -- Check Element Clicks
+            local currentTab = windowState.Tabs[windowState.CurrentTab]
+            if currentTab then
+                for _, el in ipairs(currentTab.Elements) do
+                    if el.HandleClick then el:HandleClick(mPos) end
+                end
+            end
         end
-    end)
 
-    -- Mouse Button Release Listener
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            windowState.IsDragging = false
-            windowState.IsResizing = false
-        end
-    end)
-
-    -- Continuous RenderStepped Drag & Resize Loop
-    RunService.RenderStepped:Connect(function()
-        if not windowState.Open then return end
-        local mPos = UserInputService:GetMouseLocation()
-
-        if windowState.IsDragging then
-            windowState.Position = mPos - windowState.DragOffset
-            LayoutUI()
-        elseif windowState.IsResizing then
-            local delta = mPos - windowState.ResizeStartMouse
-            local newX = math.max(420, windowState.ResizeStartSize.X + delta.X)
-            local newY = math.max(260, windowState.ResizeStartSize.Y + delta.Y)
-            windowState.Size = Vector2.new(newX, newY)
-            LayoutUI()
+        -- 5. Element Mouse Hold (Sliders)
+        local currentTab = windowState.Tabs[windowState.CurrentTab]
+        if currentTab then
+            for _, el in ipairs(currentTab.Elements) do
+                if el.HandleHold then el:HandleHold(mPos, leftPressed) end
+            end
         end
     end)
 
@@ -362,17 +403,13 @@ function VesperaUI:CreateWindow(config: any)
                 toggleCfg.Callback(isToggled)
             end
 
-            -- Click listener for toggle
-            UserInputService.InputBegan:Connect(function(input)
-                if windowState.Open and windowState.CurrentTab == tabIndex and input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    local mPos = UserInputService:GetMouseLocation()
-                    local boxPos = Box.Position
-                    if mPos.X >= boxPos.X and mPos.X <= (boxPos.X + 180) and
-                       mPos.Y >= boxPos.Y and mPos.Y <= (boxPos.Y + 20) then
-                        ToggleAPI:SetValue(not isToggled)
-                    end
+            function ToggleAPI:HandleClick(mPos: Vector2)
+                local boxPos = Box.Position
+                if mPos.X >= boxPos.X and mPos.X <= (boxPos.X + 180) and
+                   mPos.Y >= boxPos.Y and mPos.Y <= (boxPos.Y + 20) then
+                    ToggleAPI:SetValue(not isToggled)
                 end
-            end)
+            end
 
             table.insert(TabAPI.Elements, ToggleAPI)
             TabAPI.YOffset += 30
@@ -438,36 +475,31 @@ function VesperaUI:CreateWindow(config: any)
                 sliderCfg.Callback(val)
             end
 
-            -- Interactive Slider Dragging
-            UserInputService.InputBegan:Connect(function(input)
-                if windowState.Open and windowState.CurrentTab == tabIndex and input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    local mPos = UserInputService:GetMouseLocation()
-                    local tPos = Track.Position
-                    local tw = Track.Size.X
-                    if mPos.X >= tPos.X and mPos.X <= (tPos.X + tw) and
-                       mPos.Y >= (tPos.Y - 5) and mPos.Y <= (tPos.Y + 15) then
-                        isSliding = true
-                        local relativeX = math.clamp(mPos.X - tPos.X, 0, tw)
-                        local calculatedVal = math.floor(min + ((relativeX / tw) * (max - min)))
-                        SliderAPI:SetValue(calculatedVal)
-                    end
+            function SliderAPI:HandleClick(mPos: Vector2)
+                local tPos = Track.Position
+                local tw = Track.Size.X
+                if mPos.X >= tPos.X and mPos.X <= (tPos.X + tw) and
+                   mPos.Y >= (tPos.Y - 5) and mPos.Y <= (tPos.Y + 15) then
+                    isSliding = true
+                    local relativeX = math.clamp(mPos.X - tPos.X, 0, tw)
+                    local calculatedVal = math.floor(min + ((relativeX / tw) * (max - min)))
+                    SliderAPI:SetValue(calculatedVal)
                 end
-            end)
+            end
 
-            UserInputService.InputEnded:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 then isSliding = false end
-            end)
-
-            RunService.RenderStepped:Connect(function()
-                if isSliding and windowState.Open and windowState.CurrentTab == tabIndex then
-                    local mPos = UserInputService:GetMouseLocation()
+            function SliderAPI:HandleHold(mPos: Vector2, isMouseDown: boolean)
+                if not isMouseDown then
+                    isSliding = false
+                    return
+                end
+                if isSliding then
                     local tPos = Track.Position
                     local tw = Track.Size.X
                     local relativeX = math.clamp(mPos.X - tPos.X, 0, tw)
                     local calculatedVal = math.floor(min + ((relativeX / tw) * (max - min)))
                     SliderAPI:SetValue(calculatedVal)
                 end
-            end)
+            end
 
             table.insert(TabAPI.Elements, SliderAPI)
             TabAPI.YOffset += 40
@@ -491,11 +523,6 @@ function VesperaUI:CreateWindow(config: any)
             function DropAPI:UpdateLayout(wPos: Vector2, wSize: Vector2)
                 Label.Position = Vector2.new(wPos.X + 150, wPos.Y + relYOffset)
             end
-            function DropAPI:SetSelected(option: string)
-                selected = option
-                Label.Text = dropCfg.Name .. ": [" .. selected .. "]"
-                dropCfg.Callback(selected)
-            end
 
             table.insert(TabAPI.Elements, DropAPI)
             TabAPI.YOffset += 28
@@ -504,10 +531,10 @@ function VesperaUI:CreateWindow(config: any)
 
         function TabAPI:CreateKeybind(keyCfg: any)
             local relYOffset = TabAPI.YOffset
-            local key = keyCfg.Default or Enum.KeyCode.E
+            local key = keyCfg.Default or "E"
 
             local Label = Drawing.new("Text")
-            Label.Text = string.format("%s: [%s]", keyCfg.Name, key.Name)
+            Label.Text = string.format("%s: [%s]", keyCfg.Name, tostring(key))
             Label.Size = 13
             Label.Color = theme.TextPrimary
             Label.Position = Vector2.new(windowPos.X + 150, windowPos.Y + relYOffset)
