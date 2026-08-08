@@ -150,7 +150,9 @@ function VesperaUI:CreateWindow(config: any)
         block_roblox_window(true)
     end
     if typeof(send_notification) == "function" then
-        pcall(send_notification, "Vespera UI Loaded | Drag Header to Move | Drag Bottom-Right to Resize")
+        pcall(function()
+            send_notification("Vespera UI", "Vespera UI Loaded successfully!")
+        end)
     end
 
     local WindowAPI = {}

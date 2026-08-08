@@ -117,4 +117,8 @@ MemoryTab:CreateToggle({
     end
 })
 
-send_notification("Vespera Demo Active! Press RIGHT SHIFT to toggle UI.")
+if typeof(send_notification) == "function" then
+    pcall(function()
+        send_notification("Vespera UI", "Vespera Demo Active! Press RIGHT SHIFT to toggle UI.")
+    end)
+end
