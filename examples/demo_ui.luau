@@ -2,7 +2,15 @@
 -- Vespera UI Showcase Demo
 -- Features Obsidian Black & Neon Purple theme with Toggles, Sliders, Dropdowns, Keybinds, Color Pickers, and Performance Modes
 
-local VesperaUI = require(script.Parent.Parent:FindFirstChild("library"):FindFirstChild("severe_ui") or "library/severe_ui.luau")
+-- Safe Severe External Module Loader for VesperaUI
+local VesperaUI
+if typeof(dofile) == "function" and typeof(isfile) == "function" and isfile("library/severe_ui.luau") then
+    VesperaUI = dofile("library/severe_ui.luau")
+elseif typeof(readfile) == "function" and typeof(isfile) == "function" and isfile("library/severe_ui.luau") then
+    VesperaUI = loadstring(readfile("library/severe_ui.luau"))()
+elseif typeof(game) == "userdata" and typeof(game.HttpGet) == "function" then
+    VesperaUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/huoadf/severre/master/library/severe_ui.luau"))()
+end
 
 -- Create Vespera Window
 local Window = VesperaUI:CreateWindow({

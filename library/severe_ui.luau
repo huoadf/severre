@@ -5,7 +5,24 @@
 
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local VectorUtil = require(script.Parent:FindFirstChild("vector_polyfill") or "library/vector_polyfill.luau")
+
+-- Safe Severe External Module Loader for VectorUtil
+local VectorUtil
+if typeof(dofile) == "function" and typeof(isfile) == "function" and isfile("library/vector_polyfill.luau") then
+    VectorUtil = dofile("library/vector_polyfill.luau")
+elseif typeof(readfile) == "function" and typeof(isfile) == "function" and isfile("library/vector_polyfill.luau") then
+    VectorUtil = loadstring(readfile("library/vector_polyfill.luau"))()
+elseif typeof(game) == "userdata" and typeof(game.HttpGet) == "function" then
+    VectorUtil = loadstring(game:HttpGet("https://raw.githubusercontent.com/huoadf/severre/master/library/vector_polyfill.luau"))()
+else
+    -- Embedded Fallback Vector Utilities
+    VectorUtil = {
+        Magnitude = function(v) return math.sqrt((v.X or 0)^2 + (v.Y or 0)^2 + (v.Z or 0)^2) end,
+        Unit = function(v) local m = math.sqrt((v.X or 0)^2 + (v.Y or 0)^2 + (v.Z or 0)^2); return if m == 0 then v else v / m end,
+        Dot = function(v1, v2) return (v1.X * v2.X) + (v1.Y * v2.Y) + ((v1.Z or 0) * (v2.Z or 0)) end,
+        Lerp = function(v1, v2, a) return v1 + ((v2 - v1) * math.clamp(a, 0, 1)) end
+    }
+end
 
 local VesperaUI = {
     Version = "1.0.0",
