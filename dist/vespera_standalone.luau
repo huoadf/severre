@@ -245,7 +245,8 @@ function VesperaUI:CreateWindow(config: any)
         return false
     end
 
-    RunService.RenderStepped:Connect(function()
+    local renderSignal = RunService.Render or RunService.RenderStepped or RunService.Heartbeat
+    renderSignal:Connect(function()
         -- 1. Check Toggle Keybind (RightShift)
         if typeof(getpressedkeys) == "function" then
             local keys = getpressedkeys()

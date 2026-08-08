@@ -61,7 +61,8 @@ local function GetClosestTargetInFOV()
 end
 
 -- Main Aimbot Loop
-RunService.RenderStepped:Connect(function()
+local renderSignal = RunService.Render or RunService.RenderStepped or RunService.Heartbeat
+renderSignal:Connect(function()
     local MousePos = UserInputService:GetMouseLocation()
     FOVCircle.Position = MousePos
 
