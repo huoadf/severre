@@ -2,8 +2,24 @@
 -- Severe UNC & SNC Combined Test Suite Orchestrator & File Logger
 -- Sandboxed output file target: C:\v2\workspace\severe_test_results.txt & severe_test_results.json
 
-local UNCTestSuite = require(script.Parent:FindFirstChild("severe_unc_test") or "scripts/severe_unc_test.luau")
-local SNCTestSuite = require(script.Parent:FindFirstChild("severe_snc_test") or "scripts/severe_snc_test.luau")
+-- Safe Severe External Module Loader for Test Suites
+local UNCTestSuite
+if typeof(dofile) == "function" and typeof(isfile) == "function" and isfile("scripts/severe_unc_test.luau") then
+    UNCTestSuite = dofile("scripts/severe_unc_test.luau")
+elseif typeof(readfile) == "function" and typeof(isfile) == "function" and isfile("scripts/severe_unc_test.luau") then
+    UNCTestSuite = loadstring(readfile("scripts/severe_unc_test.luau"))()
+elseif typeof(game) == "userdata" and typeof(game.HttpGet) == "function" then
+    UNCTestSuite = loadstring(game:HttpGet("https://raw.githubusercontent.com/huoadf/severre/master/scripts/severe_unc_test.luau"))()
+end
+
+local SNCTestSuite
+if typeof(dofile) == "function" and typeof(isfile) == "function" and isfile("scripts/severe_snc_test.luau") then
+    SNCTestSuite = dofile("scripts/severe_snc_test.luau")
+elseif typeof(readfile) == "function" and typeof(isfile) == "function" and isfile("scripts/severe_snc_test.luau") then
+    SNCTestSuite = loadstring(readfile("scripts/severe_snc_test.luau"))()
+elseif typeof(game) == "userdata" and typeof(game.HttpGet) == "function" then
+    SNCTestSuite = loadstring(game:HttpGet("https://raw.githubusercontent.com/huoadf/severre/master/scripts/severe_snc_test.luau"))()
+end
 
 send_notification("Executing Severe UNC & SNC Environment Test Suites...")
 
