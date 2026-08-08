@@ -84,14 +84,10 @@ severre/
 
 ---
 
-## 🐙 Git Release & Push Instructions
+## 🐙 GitHub Repository
 
-To push this repository to your GitHub account:
+Live Repository: [https://github.com/huoadf/severre](https://github.com/huoadf/severre)
 
 ```bash
-git add .
-git commit -m "feat: Add Vespera Obsidian & Neon Purple UI Library for Severe"
-git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPOSITORY.git
-git push -u origin main
+git clone https://github.com/huoadf/severre.git
 ```
