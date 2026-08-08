@@ -70,7 +70,8 @@ VisualsTab:CreateSlider({
 severre/
 ├── README.md
 ├── library/
-│   └── severe_ui.luau        # Core Vespera UI Library
+│   ├── severe_ui.luau        # Core Vespera UI Library
+│   └── vector_polyfill.luau  # Vector Math Polyfill (Magnitude, Unit, Dot, Lerp)
 ├── examples/
 │   └── demo_ui.luau          # Showcase Demo Script
 ├── types/

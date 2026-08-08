@@ -5,6 +5,7 @@
 
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local VectorUtil = require(script.Parent:FindFirstChild("vector_polyfill") or "library/vector_polyfill.luau")
 
 local VesperaUI = {
     Version = "1.0.0",
